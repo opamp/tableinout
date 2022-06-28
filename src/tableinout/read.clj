@@ -1,6 +1,7 @@
 (ns tableinout.read
   (:require [clojure.string :as str]
-            [clojure.set :as cset]))
+            [clojure.set :as cset])
+  (:import [org.apache.poi.ss.usermodel WorkbookFactory]))
 
 (defn- slice-csv-str [csv-str region-chars ignore-region val]
   (if (or (= csv-str "") (and (not ignore-region) (contains? #{\, \newline} (nth csv-str 0))))
@@ -42,3 +43,16 @@
   (build-table csv-str
                region-chars
                (if map-fn map-fn (fn [x] x))))
+
+(defn read-csv-file [csv-file & {:keys [region-chars map-fn encoding] :as opts}]
+  (read-csv (slurp csv-file :encoding encoding) :region-chars region-chars :map-fn map-fn))
+
+(defn create-workbook [xlsx-file password]
+  (if (string? password)
+    (WorkbookFactory/create xlsx-file password)
+    (WorkbookFactory/create xlsx-file)))
+
+(defn read-xlsx-file [xlsx-file & {:keys [password] :as opts}]
+  (let [wb (create-workbook xlsx-file password)]
+    wb ;; temporary return
+    ))
