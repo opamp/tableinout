@@ -78,7 +78,7 @@
     (recur sheet (+ start-rownum 1) (conj initdata (read-row row 0 [])))
     initdata))
 
-(defn read-xlsx-file [xlsx-file sheet-name]
+(defn read-xlsx-file! [xlsx-file sheet-name]
   (let [wb (WorkbookFactory/create (new File xlsx-file))
         sheet (if (string? sheet-name) (. wb getSheet sheet-name) (. wb getSheetAt 0))]
     (read-sheet-table sheet 0 [])))
