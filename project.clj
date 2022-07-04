@@ -1,4 +1,4 @@
-(defproject tableinout "0.1.0-SNAPSHOT"
+(defproject tableinout "0.1.0"
   :description "Table input/output library"
   :url "https://github.com/opamp/tableinout"
   :license {:name "MIT"
