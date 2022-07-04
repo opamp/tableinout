@@ -1,7 +1,8 @@
 (ns tableinout.read
   (:require [clojure.string :as str]
             [clojure.set :as cset])
-  (:import [org.apache.poi.ss.usermodel WorkbookFactory]))
+  (:import [java.io File]
+           [org.apache.poi.ss.usermodel WorkbookFactory CellType]))
 
 (defn- slice-csv-str [csv-str region-chars ignore-region val]
   (if (or (= csv-str "") (and (not ignore-region) (contains? #{\, \newline} (nth csv-str 0))))
@@ -52,7 +53,33 @@
     (WorkbookFactory/create xlsx-file password)
     (WorkbookFactory/create xlsx-file)))
 
-(defn read-xlsx-file [xlsx-file & {:keys [password] :as opts}]
-  (let [wb (create-workbook xlsx-file password)]
-    wb ;; temporary return
-    ))
+(defn- read-cell-data [cell]
+  (let [cell-type (. cell getCellType)]
+    (cond
+      (= cell-type CellType/STRING)
+      (. cell getStringCellValue)
+      (= cell-type CellType/NUMERIC)
+      (. cell getNumericCellValue)
+      (= cell-type CellType/BOOLEAN)
+      (. cell getBooleanCellValue)
+      (= cell-type CellType/FORMULA)
+      (str (. cell getCellFormula))
+      :else nil)))
+
+(defn- read-row [row start-cellnum initdata]
+  (if-let [cell (. row getCell start-cellnum)]
+    (if-let [cell-data (read-cell-data cell)]
+      (recur row (+ start-cellnum 1) (conj initdata cell-data))
+      initdata)
+    initdata))
+
+(defn- read-sheet-table [sheet start-rownum initdata]
+  (if-let [row (. sheet getRow start-rownum)]
+    (recur sheet (+ start-rownum 1) (conj initdata (read-row row 0 [])))
+    initdata))
+
+(defn read-xlsx-file [xlsx-file sheet-name]
+  (let [wb (WorkbookFactory/create (new File xlsx-file))
+        sheet (if (string? sheet-name) (. wb getSheet sheet-name) (. wb getSheetAt 0))]
+    (read-sheet-table sheet 0 [])))
+
