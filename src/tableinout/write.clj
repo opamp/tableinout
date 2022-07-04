@@ -56,7 +56,7 @@
     (. workbook write outstream)
     (. outstream close)))
 
-(defn write-simple-xlsx! [table outfile outsheet]
+(defn write-xlsx! [table outfile outsheet]
   (let [wb (create-new-xlsx-workbook)
         sheet (create-sheet! wb outsheet)]
     (write-table-to-sheet! sheet table)
@@ -66,61 +66,3 @@
   ;; not implemented
   )
 
-(defn- decorate-table [sheet table-range decoration]
-  (let [{:keys [colors font-colors font-size halign valign]} decoration]
-    (foreach-cell!
-     sheet
-     table-range
-     (fn [r c cell]
-       (let [wb (. (. cell getSheet) getWorkbook)
-             cs (. wb createCellStyle)
-             font (. wb createFont)
-             color (IndexedColors/valueOf (nth (:colors decoration)
-                                               (mod r (count (:colors decoration)))))
-             font-color (IndexedColors/valueOf (nth (:font-colors decoration)
-                                                    (mod r (count (:font-colors decoration)))))
-             border-color (IndexedColors/valueOf (:border-color decoration))
-             halign (HorizontalAlignment/valueOf (:halign decoration))
-             valign (VerticalAlignment/valueOf (:valign decoration))]
-         ;; wraptext
-         (. cs setWrapText (:wraptext decoration))
-         ;; border
-         (. cs setBorderTop (BorderStyle/valueOf (:border decoration)))
-         (. cs setBorderBottom (BorderStyle/valueOf (:border decoration)))
-         (. cs setBorderLeft (BorderStyle/valueOf (:border decoration)))
-         (. cs setBorderRight (BorderStyle/valueOf (:border decoration)))
-         (. cs setTopBorderColor (. border-color getIndex))
-         (. cs setBottomBorderColor (. border-color getIndex))
-         (. cs setLeftBorderColor (. border-color getIndex))
-         (. cs setRightBorderColor (. border-color getIndex))
-         ;; cell color
-         (. cs setFillForegroundColor (. color getIndex))
-         (. cs setFillPattern (FillPatternType/SOLID_FOREGROUND))
-         ;; cell font
-         (. font setFontHeightInPoints (:font-size decoration))
-         (. font setColor (. font-color getIndex))
-         (. cs setFont font)
-         ;; align
-         (. cs setAlignment halign)
-         (. cs setVerticalAlignment valign)
-         ;; set settings
-         (. cell setCellStyle cs))))))
-
-
-(defn write-xlsx! [table outfile outsheet & {:keys [decoration] :as opts}]
-  (let [tsize (table-size table)
-        wb (create-new-xlsx-workbook)
-        sheet (create-sheet! wb outsheet)]
-    (write-table-to-sheet! sheet table)
-    ;; apply decorations
-    (when (:cell-width decoration)
-      (set-width-of-cells! sheet (:cell-width decoration)))
-    ;; header decoration
-    (decorate-table sheet
-                    [{:row 0 :cell 0} {:row 1 :cell (:cell tsize)}]
-                    (:header decoration))
-    ;; data decoration
-    (decorate-table sheet
-                    [{:row 1 :cell 0} {:row (:row tsize) :cell (:cell tsize)}]
-                    (:data decoration))
-    (write-workbook-to-file! wb outfile)))
