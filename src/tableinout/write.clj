@@ -62,7 +62,15 @@
     (write-table-to-sheet! sheet table)
     (write-workbook-to-file! wb outfile)))
 
-(defn write-csv! [table outfile]
-  ;; not implemented
-  )
-
+(defn write-csv! [table outfile region-char]
+  (let [str-table (map (fn [line]
+                         (str/join ","
+                                   (map (fn [content]
+                                          (let [esc-content (str/replace content
+                                                                         (str region-char)
+                                                                         (str region-char region-char))]
+                                            (if (str/includes? esc-content ",")
+                                              (str region-char esc-content region-char)
+                                              esc-content))) line)))
+                       table)]
+    (spit outfile (str/join "\n" str-table))))
